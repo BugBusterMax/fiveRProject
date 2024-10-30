@@ -1,0 +1,95 @@
+---
+title: "fiveRProject"
+author: "Zirui"
+date: "2024-10-30"
+output: html_document
+---
+## Assignment 6
+```{r}
+library(tidyverse)
+```
+## 1
+```{r}
+help(dnorm)
+help(pnorm)
+help(qnorm)
+help(rnorm)
+```
+## (Q1)
+```{r}
+mu <- 1
+sigma1 <- 1
+sigma2 <- sqrt(2)
+sigma3 <- sqrt(3)
+x <- seq(-3, 5, length.out = 500)
+y1 <- dnorm(x, mean = mu, sd = sigma1)
+y2 <- dnorm(x, mean = mu, sd = sigma2)
+y3 <- dnorm(x, mean = mu, sd = sigma3)
+plot(x, y1, type = "l", col = "blue", lwd = 2, ylim = c(0, 0.5), main = "Probability Density Functions of Gaussian Distributions", xlab = "x", ylab = "Density")
+lines(x, y2, col = "red", lwd = 2)
+lines(x, y3, col = "green", lwd = 2)
+legend("topright", legend = c(expression(X[1] %~% N(1,1)), expression(X[2] %~% N(1,2)), expression(X[3] %~% N(1,3))), col = c("blue", "red", "green"), lwd = 2)
+```
+## (Q2)
+```{r}
+mu <- 1
+sigma1 <- 1
+sigma2 <- sqrt(2)
+sigma3 <- sqrt(3)
+x <- seq(-3, 5, length.out = 500)
+y1 <- pnorm(x, mean = mu, sd = sigma1)
+y2 <- pnorm(x, mean = mu, sd = sigma2)
+y3 <- pnorm(x, mean = mu, sd = sigma3)
+plot(x, y1, type = "l", col = "blue", lwd = 2, ylim = c(0, 1), main = "Cumulative Distribution Functions of Gaussian Distributions", xlab = "x", ylab = "Cumulative Probability")
+lines(x, y2, col = "red", lwd = 2)
+lines(x, y3, col = "green", lwd = 2)
+legend("bottomright", legend = c(expression(X[1] %~% N(1,1)), expression(X[2] %~% N(1,2)), expression(X[3] %~% N(1,3))), col = c("blue", "red", "green"), lwd = 2)
+```
+## (Q3)
+```{r}
+mu <- 1
+sigma1 <- 1
+sigma2 <- sqrt(2)
+sigma3 <- sqrt(3)
+p <- seq(0, 1, length.out = 500)
+q1 <- qnorm(p, mean = mu, sd = sigma1)
+q2 <- qnorm(p, mean = mu, sd = sigma2)
+q3 <- qnorm(p, mean = mu, sd = sigma3)
+plot(p, q1, type = "l", col = "blue", lwd = 2, ylim = c(-3, 5), main = "Quantile Functions of Gaussian Distributions", xlab = "Probability", ylab = "Quantile (x)")
+lines(p, q2, col = "red", lwd = 2)
+lines(p, q3, col = "green", lwd = 2)
+legend("topleft", legend = c(expression(X[1] %~% N(1,1)), expression(X[2] %~% N(1,2)), expression(X[3] %~% N(1,3))), col = c("blue", "red", "green"), lwd = 2)
+```
+## (Q4)
+```{r}
+set.seed(42)
+n <- 100
+standardGaussianSample <- rnorm(n, mean = 0, sd = 1)
+standardGaussianSample
+```
+## (Q5)
+```{r}
+alpha <- sqrt(3)
+beta <- 1
+mean1Var3GaussianSampleA <- alpha * standardGaussianSample + beta
+mean1Var3GaussianSampleA
+```
+## (Q6)
+```{r}
+set.seed(42)
+n <- 100
+mean_Y <- 1
+sd_Y <- sqrt(3)
+mean1Var3GaussianSampleB <- rnorm(n, mean = mean_Y, sd = sd_Y)
+identical(mean1Var3GaussianSampleA, mean1Var3GaussianSampleB)
+```
+## (Q7)
+```{r}
+library(ggplot2)
+sample_mean <- mean(mean1Var3GaussianSampleA)
+x_vals <- seq(-5, 7, length.out = 500)
+population_density <- dnorm(x_vals, mean = 1, sd = sqrt(3))
+population_density_df <- data.frame(x = x_vals, density = population_density)
+ggplot() + geom_density(aes(x = mean1Var3GaussianSampleA, color = "Sample Density"), fill = "blue", alpha = 0.3, size = 1.2) + geom_line(data = population_density_df, aes(x = x, y = density, color = "Population Density"), size = 1.2, linetype = "dashed") + geom_vline(xintercept = 1, color = "red", linetype = "dotted", size = 1, aes(color = "Population Mean")) + geom_vline(xintercept = sample_mean, color = "green", linetype = "solid", size = 1, aes(color = "Sample Mean")) + scale_color_manual(values = c("Sample Density" = "blue", "Population Density" = "black", "Population Mean" = "red", "Sample Mean" = "green")) + labs(title = "Sample Density and Population Density of N(1,3)", x = "Value", y = "Density") + theme_minimal() + theme(legend.position = "top")
+```
+## (Q8)
