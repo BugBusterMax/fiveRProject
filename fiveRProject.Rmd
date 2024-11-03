@@ -93,3 +93,385 @@ population_density_df <- data.frame(x = x_vals, density = population_density)
 ggplot() + geom_density(aes(x = mean1Var3GaussianSampleA, color = "Sample Density"), fill = "blue", alpha = 0.3, size = 1.2) + geom_line(data = population_density_df, aes(x = x, y = density, color = "Population Density"), size = 1.2, linetype = "dashed") + geom_vline(xintercept = 1, color = "red", linetype = "dotted", size = 1, aes(color = "Population Mean")) + geom_vline(xintercept = sample_mean, color = "green", linetype = "solid", size = 1, aes(color = "Sample Mean")) + scale_color_manual(values = c("Sample Density" = "blue", "Population Density" = "black", "Population Mean" = "red", "Sample Mean" = "green")) + labs(title = "Sample Density and Population Density of N(1,3)", x = "Value", y = "Density") + theme_minimal() + theme(legend.position = "top")
 ```
 ## (Q8)
+## 2
+```{r}
+set.seed(0)
+num_trials_per_sample_size <- 1000
+min_sample_size <- 30
+max_sample_size <- 500
+sample_size_inc <- 5
+mu_0 <- 1
+sigma_0 <- 3
+simulation_df<-crossing(trial=seq(num_trials_per_sample_size), sample_size=seq(min_sample_size, max_sample_size,sample_size_inc)) %>% mutate(simulation=pmap(.l=list(trial,sample_size), .f=~rnorm(.y,mean=mu_0,sd=sigma_0))) %>% mutate(sample_md=map_dbl(.x=simulation,.f=median)) %>% group_by(sample_size) %>% summarise(msq_error_md=mean((sample_md-mu_0)^2))
+```
+## (Q1)
+## (Q2)
+```{r}
+library(dplyr)
+library(purrr)
+library(ggplot2)
+set.seed(0)
+num_trials_per_sample_size <- 1000
+min_sample_size <- 30
+max_sample_size <- 500
+sample_size_inc <- 5
+mu_0 <- 1
+sigma_0 <- 3
+simulation_df <- crossing(
+  trial = seq(num_trials_per_sample_size),
+  sample_size = seq(min_sample_size, max_sample_size, sample_size_inc)
+) %>% mutate(simulation = pmap(.l = list(trial, sample_size), .f = ~ rnorm(.y, mean = mu_0, sd = sigma_0))) %>% mutate(
+    sample_md = map_dbl(simulation, median),
+    sample_mn = map_dbl(simulation, mean)
+  ) %>% group_by(sample_size) %>% summarise(
+    msq_error_md = mean((sample_md - mu_0)^2),
+    msq_error_mn = mean((sample_mn - mu_0)^2)
+  )
+ggplot(simulation_df, aes(x = sample_size)) + geom_line(aes(y = msq_error_md, color = "Sample Median"), size = 1) + geom_line(aes(y = msq_error_mn, color = "Sample Mean"), size = 1, linetype = "dashed") + labs(
+    title = "Mean Squared Error of Sample Mean and Sample Median as Estimators of μ₀",
+    x = "Sample Size",
+    y = "Mean Squared Error"
+  ) +
+  scale_color_manual(values = c("Sample Median" = "blue", "Sample Mean" = "red")) + theme_minimal() + theme(legend.position = "top") + guides(color = guide_legend(title = "Estimator"))
+```
+## 3
+## (Q1)
+## 4
+## 4.1
+```{r}
+library(Stat2Data)
+data("Hawks")
+```
+## (Q1)
+```{r}
+library(Stat2Data)
+data("Hawks")
+RedTailedDf <- Hawks[Hawks$Species == "RT", c("Weight", "Tail", "Wing")]
+dim(RedTailedDf)
+head(RedTailedDf, 5)
+```
+## (Q2)
+```{r}
+tail_lengths <- RedTailedDf$Tail
+n <- length(tail_lengths)
+mu_hat_MLE <- mean(tail_lengths)
+sigma_hat_squared_MLE <- sum((tail_lengths - mu_hat_MLE)^2) / n
+mu_hat_MLE
+sigma_hat_squared_MLE
+```
+## (Q3)
+```{r}
+library(ggplot2)
+ggplot(data = RedTailedDf, aes(x = Tail)) +
+  geom_density(aes(y = ..density..), fill = "lightblue", color = "darkblue", alpha = 0.5) +
+  stat_function(fun = dnorm, args = list(mean = mu_hat_MLE, sd = sqrt(sigma_hat_squared_MLE)),
+                color = "red", size = 1.2, linetype = "dashed") +
+  labs(title = "Comparison of Kernel Density and Fitted Gaussian PDF",
+       x = "Tail Length", y = "Density") +
+  theme_minimal()
+```
+## 4.2
+## (Q1)
+```{r}
+library(ggplot2)
+library(dplyr)
+mu_0 <- 1
+sigma_0 <- 3
+sigma_0_squared <- sigma_0^2
+sample_sizes <- seq(5, 100, by = 5)
+num_trials <- 1000
+results <- data.frame(sample_size = integer(), bias_MLE = numeric(), bias_U = numeric())
+for (n in sample_sizes) {
+  biases_MLE <- numeric(num_trials)
+  biases_U <- numeric(num_trials)
+  for (trial in 1:num_trials) {
+    # 从N(mu_0, sigma_0^2)中生成样本
+    sample <- rnorm(n, mean = mu_0, sd = sigma_0)
+    sample_mean <- mean(sample)
+    V_MLE <- sum((sample - sample_mean)^2) / n
+    V_U <- sum((sample - sample_mean)^2) / (n - 1)
+    biases_MLE[trial] <- V_MLE - sigma_0_squared
+    biases_U[trial] <- V_U - sigma_0_squared
+  }
+  avg_bias_MLE <- mean(biases_MLE)
+  avg_bias_U <- mean(biases_U)
+  results <- rbind(results, data.frame(sample_size = n, bias_MLE = avg_bias_MLE, bias_U = avg_bias_U))
+}
+ggplot(results, aes(x = sample_size)) +
+  geom_line(aes(y = bias_MLE, color = "最大似然估计的偏差"), size = 1) +
+  geom_line(aes(y = bias_U, color = "无偏估计的偏差"), size = 1) +
+  labs(title = "方差估计器偏差比较",
+       x = "样本大小",
+       y = "偏差") +
+  scale_color_manual(values = c("最大似然估计的偏差" = "red", "无偏估计的偏差" = "blue")) +
+  theme_minimal()
+```
+## (Q2)
+```{r}
+library(ggplot2)
+library(dplyr)
+mu_0 <- 1
+sigma_0 <- 3
+sigma_0_true <- sigma_0
+sample_sizes <- seq(5, 100, by = 5)
+num_trials <- 1000
+results_std <- data.frame(sample_size = integer(), bias_std_U = numeric())
+for (n in sample_sizes) {
+  biases_std_U <- numeric(num_trials)
+  for (trial in 1:num_trials) {
+    sample <- rnorm(n, mean = mu_0, sd = sigma_0)
+    sample_mean <- mean(sample)
+    V_U <- sum((sample - sample_mean)^2) / (n - 1)
+    std_U <- sqrt(V_U)
+    biases_std_U[trial] <- std_U - sigma_0_true
+  }
+  avg_bias_std_U <- mean(biases_std_U)
+  results_std <- rbind(results_std, data.frame(sample_size = n, bias_std_U = avg_bias_std_U))
+}
+ggplot(results_std, aes(x = sample_size, y = bias_std_U)) +
+  geom_line(color = "purple", size = 1) +
+  labs(title = "无偏标准差估计量的偏差",
+       x = "样本大小",
+       y = "sqrt(V_U) 的偏差") +
+  theme_minimal()
+```
+## (Q3)
+## 4.2
+## (Q1)
+## (Q2)
+## (Q3)
+```{r}
+lambda_0 <- 0.5
+sample_sizes <- seq(10, 200, by = 10)
+num_simulations <- 1000
+mse_values <- numeric(length(sample_sizes))
+for (i in seq_along(sample_sizes)) {
+  n <- sample_sizes[i]
+  mse <- mean(sapply(1:num_simulations, function(x) {
+    sample_data <- rpois(n, lambda_0)
+    lambda_mle <- mean(sample_data)
+    (lambda_mle - lambda_0)^2
+  }))
+  mse_values[i] <- mse
+}
+library(ggplot2)
+mse_df <- data.frame(SampleSize = sample_sizes, MSE = mse_values)
+
+ggplot(mse_df, aes(x = SampleSize, y = MSE)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "red", size = 1.5) +
+  labs(
+    title = "泊松 λ 的 MLE 的均方误差与样本大小的关系",
+    x = "样本大小",
+    y = "均方误差 (MSE)"
+  ) +
+  theme_minimal()
+```
+## (Q4)
+```{r}
+data <- read.csv("C:/Users/mzr/Desktop/VonBortkiewicz.csv")
+fatalities <- data$fatalities
+lambda_mle <- mean(fatalities)
+prob_zero_fatalities <- dpois(0, lambda = lambda_mle)
+cat("最大似然估计的 lambda：", lambda_mle, "\n")
+cat("零死亡概率的估计：", prob_zero_fatalities, "\n")
+```
+## (Q5)
+```{r}
+set.seed(0)
+lambda_0 <- 0.5
+n <- 1000
+num_simulations <- 1000
+fisher_info <- 1 / lambda_0
+standardized_mles <- replicate(num_simulations, {
+  sample_data <- rpois(n, lambda = lambda_0)
+  lambda_mle <- mean(sample_data)
+  sqrt(n * fisher_info) * (lambda_mle - lambda_0)
+})
+library(ggplot2)
+data_frame <- data.frame(standardized_mles = standardized_mles)
+ggplot(data_frame, aes(x = standardized_mles)) +
+  geom_density(color = "blue", fill = "lightblue") +
+  labs(
+    title = expression(paste("标准化 MLE 的核密度图: ", sqrt(n * I(lambda[0])) * (hat(lambda)[MLE] - lambda[0]))),
+    x = expression(sqrt(n * I(lambda[0])) * (hat(lambda)[MLE] - lambda[0])),
+    y = "密度"
+  ) +
+  theme_minimal()
+```
+## 4.4
+## (Q1)
+## (Q2)
+```{r}
+library(dplyr)
+customer_data <- read.csv("C:/Users/mzr/Desktop/CustomerPurchase.csv")
+customer_data <- customer_data %>%
+  mutate(time_diffs = lead(Time) - Time)
+head(customer_data)
+```
+## (Q3)
+```{r}
+time_diffs <- na.omit(customer_data$time_diffs)
+mean_time_diff <- mean(time_diffs)
+lambda_MLE <- 1 / mean_time_diff
+lambda_MLE
+```
+## (Q4)
+```{r}
+time_threshold <- 60
+prob_exceeds_one_minute <- 1 - pexp(time_threshold, rate = lambda_MLE)
+prob_exceeds_one_minute
+```
+## 5
+## 5.1
+```{r}
+
+```
+## (Q1)
+## (Q2)
+```{r}
+library(Stat2Data)
+data("Hawks")
+RedTailedWeights <- na.omit(Hawks$Weight[Hawks$Species == "RT"])
+sample_size <- length(RedTailedWeights)
+sample_mean <- mean(RedTailedWeights)
+sample_sd <- sd(RedTailedWeights)
+alpha <- 0.01
+t_value <- qt(1 - alpha / 2, df = sample_size - 1)
+confidence_interval_l <- sample_mean - t_value * sample_sd / sqrt(sample_size)
+confidence_interval_u <- sample_mean + t_value * sample_sd / sqrt(sample_size)
+confidence_interval <- c(confidence_interval_l, confidence_interval_u)
+confidence_interval
+```
+## (Q3)
+```{r}
+library(Stat2Data)
+library(ggplot2)
+data("Hawks")
+RedTailedWeights <- na.omit(Hawks$Weight[Hawks$Species == "RT"])
+ggplot(data.frame(Weight = RedTailedWeights), aes(x = Weight)) +
+  geom_density(color = "blue", fill = "lightblue") +
+  labs(title = "红尾鹰重量的核密度图",
+       x = "重量", y = "密度") +
+  theme_minimal()
+ggplot(data.frame(Weight = RedTailedWeights), aes(sample = Weight)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "红尾鹰重量的QQ图") +
+  theme_minimal()
+```
+## 5.2
+```{r}
+student_t_confidence_interval<-function(sample,confidence_level){
+ sample<-sample[!is.na(sample)]
+ n<-length(sample)
+ mu_est<-mean(sample)
+ sig_est<-sd(sample)
+ alpha = 1-confidence_level
+ 
+ t<-qt(1-alpha/2,df=n-1)
+ l=mu_est-(t/sqrt(n))*sig_est
+ u=mu_est+(t/sqrt(n))*sig_est
+return(c(l,u))
+}
+num_trials <- 100000
+sample_size <- 30
+mu_0 <- 1
+sigma_0 <- 3
+alpha <- 0.05
+set.seed(0)
+single_alpha_coverage_simulation_df <-
+data.frame(trial=seq(num_trials)) %>% mutate(sample=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0
+))) %>% mutate(ci_interval=map(.x=sample, 
+.f=~student_t_confidence_interval(.x,1-alpha))) %>% mutate(cover=map_lgl(.x=ci_interval, 
+.f=~((min(.x)<=mu_0)&(max(.x)>=mu_0)))) %>% mutate(ci_length=map_dbl(.x=ci_interval, .f=~(max(.x)-min(.x))))
+single_alpha_coverage_simulation_df %>% pull(cover) %>% mean()
+```
+## (Q1)
+```{r}
+num_trials <- 100000
+sample_size <- 30
+mu_0 <- 1
+sigma_0 <- 3
+set.seed(0)
+confidence_levels <- seq(0.8, 0.99, by=0.01)
+coverage_results <- data.frame(confidence_level = confidence_levels, coverage_probability = NA)
+student_t_confidence_interval <- function(sample, confidence_level) {
+  sample <- sample[!is.na(sample)]
+  n <- length(sample)
+  mu_est <- mean(sample)
+  sig_est <- sd(sample)
+  alpha <- 1 - confidence_level
+  t <- qt(1 - alpha / 2, df = n - 1)
+  l <- mu_est - (t / sqrt(n)) * sig_est
+  u <- mu_est + (t / sqrt(n)) * sig_est
+  return(c(l, u))
+}
+for (i in seq_along(confidence_levels)) {
+  gamma <- confidence_levels[i]
+  alpha <- 1 - gamma
+  sim_df <- data.frame(trial = seq(num_trials)) %>%
+    mutate(
+      sample = map(.x = trial, .f = ~rnorm(n = sample_size, mean = mu_0, sd = sigma_0)),
+      ci_interval = map(.x = sample, .f = ~student_t_confidence_interval(.x, gamma)),
+      cover = map_lgl(.x = ci_interval, .f = ~((min(.x) <= mu_0) & (max(.x) >= mu_0)))
+    )
+  coverage_prob <- mean(sim_df$cover)
+  coverage_results$coverage_probability[i] <- coverage_prob
+}
+print(coverage_results)
+library(ggplot2)
+ggplot(coverage_results, aes(x = confidence_level, y = coverage_probability)) +
+  geom_line(color = "blue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "覆盖概率与置信水平的关系",
+    x = "置信水平 (1 - alpha)",
+    y = "覆盖概率"
+  ) +
+  theme_minimal()
+```
+## (Q2)
+```{r}
+num_trials <- 100000
+sample_size <- 30
+mu_0 <- 1
+sigma_0 <- 3
+set.seed(0)
+confidence_levels <- seq(0.8, 0.99, by=0.01)
+interval_length_results <- data.frame(confidence_level = confidence_levels, avg_interval_length = NA)
+student_t_confidence_interval <- function(sample, confidence_level) {
+  sample <- sample[!is.na(sample)]
+  n <- length(sample)
+  mu_est <- mean(sample)
+  sig_est <- sd(sample)
+  alpha <- 1 - confidence_level
+  
+  t <- qt(1 - alpha / 2, df = n - 1)
+  l <- mu_est - (t / sqrt(n)) * sig_est
+  u <- mu_est + (t / sqrt(n)) * sig_est
+  return(c(l, u))
+}
+for (i in seq_along(confidence_levels)) {
+  gamma <- confidence_levels[i]
+  alpha <- 1 - gamma
+  sim_df <- data.frame(trial = seq(num_trials)) %>%
+    mutate(
+      sample = map(.x = trial, .f = ~rnorm(n = sample_size, mean = mu_0, sd = sigma_0)),
+      ci_interval = map(.x = sample, .f = ~student_t_confidence_interval(.x, gamma)),
+      ci_length = map_dbl(.x = ci_interval, .f = ~max(.x) - min(.x)) # 计算区间长度
+    )
+  avg_length <- mean(sim_df$ci_length)
+  interval_length_results$avg_interval_length[i] <- avg_length
+}
+print(interval_length_results)
+library(ggplot2)
+ggplot(interval_length_results, aes(x = confidence_level, y = avg_interval_length)) +
+  geom_line(color = "blue") +
+  labs(
+    title = "置信水平与平均区间长度的关系",
+    x = "置信水平 (1 - alpha)",
+    y = "平均区间长度"
+  ) +
+  theme_minimal()
+```
